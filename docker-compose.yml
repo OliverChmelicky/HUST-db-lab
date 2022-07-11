@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  db-svc:
+      image: postgres:14.4
+      restart: always
+      volumes:
+        - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      container_name: db-svc
+      environment:
+        - POSTGRES_DBNAME=goo
+        - POSTGRES_USER=goo
+        - POSTGRES_PASSWORD=goo
+      ports:
+        - 5432:5432

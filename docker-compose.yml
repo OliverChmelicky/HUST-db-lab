@@ -13,3 +13,13 @@ services:
         - POSTGRES_PASSWORD=goo
       ports:
         - 5432:5432
+      expose:
+        - 5432
+  backend-svc:
+    image: db-lab-backend
+    restart: always
+    container_name: backend
+    ports:
+      - 8080:8080
+    expose:
+      - 8080

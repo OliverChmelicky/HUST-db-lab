@@ -2,27 +2,30 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/go-pg/pg/extra/pgdebug"
-	"github.com/go-pg/pg/v10"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
+	"github.com/uptrace/bun/driver/pgdriver"
+	"github.com/uptrace/bun/extra/bundebug"
 	"project/access"
 )
 
 func main() {
-	db := pg.Connect(&pg.Options{
-		Addr:     "db-svc:5432",
-		User:     "backend",
-		Password: "backend",
-		Database: "goo",
-	})
-	db.AddQueryHook(pgdebug.DebugHook{
-		// Print all queries.
-		Verbose: true,
-	})
+	dsn := "postgres://backend:backend@localhost:5432/goo?sslmode=disable"
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 
-	if err := db.Ping(context.Background()); err != nil {
-		fmt.Println("PostgreSQL is down", err)
+	db := bun.NewDB(sqldb, pgdialect.New())
+
+	db.AddQueryHook(bundebug.NewQueryHook(
+		bundebug.WithVerbose(true),
+		bundebug.FromEnv("BUNDEBUG"),
+	))
+
+	_, err := db.ExecContext(context.Background(), "SELECT 1")
+	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
@@ -33,5 +36,8 @@ func main() {
 		response, code, _ := userAccess.Test()
 		c.JSON(code, gin.H{"user": response})
 	})
-	r.Run() // listen and serve on 0.0.0.0:8080
+	err = r.Run() // listen and serve on 0.0.0.0:8080
+	if err != nil {
+		fmt.Println(err)
+	}
 }

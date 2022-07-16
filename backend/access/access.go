@@ -1,18 +1,19 @@
 package access
 
 import (
+	"context"
 	"fmt"
-	"github.com/go-pg/pg/v10"
+	"github.com/uptrace/bun"
 	"project/models"
 )
 
 type DbAccess struct {
-	Db *pg.DB
+	Db *bun.DB
 }
 
 func (DbAccess *DbAccess) Test() (models.User, int, error) {
 	user := new(models.User)
-	err := DbAccess.Db.Model(user).Where("uid = ?", 1).Select()
+	err := DbAccess.Db.NewSelect().Model(user).Where("uid = ?", 1).Scan(context.Background())
 
 	fmt.Println("User: ", user)
 	if err != nil {

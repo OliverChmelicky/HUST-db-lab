@@ -1,10 +1,12 @@
 package models
 
+import "github.com/uptrace/bun"
+
 type User struct {
-	tableName struct{} `pg:"Users"`
-	Uid       int
-	Name      string
-	Password  string
-	Phonenum  string
-	Address   string
+	bun.BaseModel `bun:"table:Users,alias:u"`
+	Uid           int
+	Name          string
+	Password      string
+	Phonenum      string
+	Address       string
 }

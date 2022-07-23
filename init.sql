@@ -1,77 +1,67 @@
-CREATE TABLE IF NOT EXISTS public."Users"
-(
-    uid integer NOT NULL,
-    name character varying NOT NULL,
-    password character varying NOT NULL,
-    phonenum character varying NOT NULL,
-    address character varying NOT NULL,
-    PRIMARY KEY (uid)
+CREATE TYPE "cart_status" AS ENUM (
+    'ToPay',
+    'ToShip',
+    'ToReceive',
+    'Completed',
+    'Cancel'
 );
-
-CREATE TABLE IF NOT EXISTS public."Orders"
-(
-    card_id integer NOT NULL,
-    user_id integer NOT NULL,
-    created_date timestamp without time zone NOT NULL,
-    total_price integer NOT NULL,
-    cart_status character varying NOT NULL,
-    shipping_address character varying NOT NULL,
-    shipping_fee integer NOT NULL,
-    voucher_id integer NOT NULL,
-    payment_info character varying NOT NULL,
-    PRIMARY KEY (card_id)
+CREATE TABLE "Users" (
+    "id" bigserial PRIMARY KEY,
+    "name" varchar NOT NULL,
+    "password" varchar NOT NULL,
+    "phonenum" varchar NOT NULL,
+    "address" varchar NOT NULL
 );
-
-CREATE TABLE IF NOT EXISTS public."Vouchers"
-(
-    voucher_id integer NOT NULL,
-    condition integer,
-    value integer NOT NULL,
-    date_expire timestamp without time zone,
-    PRIMARY KEY (voucher_id)
+CREATE TABLE "Vouchers" (
+    "id" bigserial PRIMARY KEY,
+    "title" varchar NOT NULL,
+    "condition" integer NOT NULL DEFAULT 0,
+    "value" integer NOT NULL,
+    "date_expire" timestamp NOT NULL
 );
-
-CREATE TABLE IF NOT EXISTS public."Products"
-(
-    product_id integer NOT NULL,
-    p_name character varying NOT NULL,
-    category_id integer NOT NULL,
-    description character varying,
-    status character varying,
-    price integer NOT NULL,
-    PRIMARY KEY (product_id)
+CREATE TABLE "Category" (
+    "id" bigserial PRIMARY KEY,
+    "title" varchar NOT NULL,
+    "description" varchar,
+    "parent_cate_id" bigint REFERENCES "Category" ("id")
 );
-
-CREATE TABLE IF NOT EXISTS public."ProductDetail"
-(
-    pd_id integer NOT NULL,
-    color character varying NOT NULL,
-    size character varying NOT NULL,
-    product_id integer NOT NULL,
-    PRIMARY KEY (pd_id)
+CREATE TABLE "Products" (
+    "id" bigserial PRIMARY KEY,
+    "name" varchar NOT NULL,
+    "category_id" bigint NOT NULL REFERENCES "Category" ("id"),
+    "description" varchar,
+    "price" integer NOT NULL
 );
-
-CREATE TABLE IF NOT EXISTS public."Category"
-(
-    category_id integer NOT NULL,
-    title character varying NOT NULL,
-    description character varying,
-    parent_category integer,
-    PRIMARY KEY (category_id)
+CREATE TABLE "ProductStocks" (
+    "id" bigserial PRIMARY KEY,
+    "color" varchar NOT NULL,
+    "size" varchar NOT NULL,
+    "product_id" bigint REFERENCES "Products" ("id"),
+    "quantity_remain" integer NOT NULL
 );
-
-CREATE TABLE IF NOT EXISTS public."Stocks"
-(
-    pv_id integer NOT NULL,
-    quantity_remain integer NOT NULL,
-    PRIMARY KEY (pv_id)
+CREATE TABLE "Orders" (
+    "id" bigserial PRIMARY KEY,
+    "user_id" bigint NOT NULL REFERENCES "Users" ("id"),
+    "created_at" timestamp NOT NULL DEFAULT 'now()',
+    "total_price" integer NOT NULL,
+    "status" cart_status NOT NULL DEFAULT 'ToPay',
+    "shipping_address" varchar NOT NULL,
+    "shipping_fee" integer NOT NULL,
+    "voucher_id" bigint NOT NULL REFERENCES "Vouchers" ("id"),
+    "payment_info" varchar NOT NULL
 );
-
-CREATE TABLE IF NOT EXISTS public."ProductOrdereds"
-(
-    po_id integer NOT NULL,
-    cart_id integer NOT NULL,
-    pv_id integer NOT NULL,
-    quantity integer NOT NULL,
-    PRIMARY KEY (po_id)
+CREATE TABLE "ProductOrdereds" (
+    "id" bigserial PRIMARY KEY,
+    "cart_id" bigint NOT NULL REFERENCES "Orders" ("id"),
+    "stock_id" bigint NOT NULL REFERENCES "ProductStocks" ("id"),
+    "quantity" integer NOT NULL
 );
+CREATE INDEX ON "Users" ("name");
+CREATE INDEX ON "Users" ("address");
+CREATE INDEX ON "Orders" ("user_id");
+CREATE INDEX ON "Orders" ("user_id", "status");
+CREATE INDEX ON "Vouchers" ("title");
+CREATE INDEX ON "Products" ("name");
+CREATE INDEX ON "Category" ("title");
+CREATE INDEX ON "ProductStocks" ("product_id");
+CREATE INDEX ON "ProductOrdereds" ("cart_id");s

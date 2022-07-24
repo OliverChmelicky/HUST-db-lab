@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	dsn := "postgres://backend:backend@localhost:5432/goo?sslmode=disable"
+	dsn := "postgres://goo:goo@db-svc:5432/goo?sslmode=disable"
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 
 	db := bun.NewDB(sqldb, pgdialect.New())

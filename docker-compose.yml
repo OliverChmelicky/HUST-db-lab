@@ -5,7 +5,8 @@ services:
       image: postgres:14.4
       restart: always
       volumes:
-        - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+        - ./database-scripts/1-init.sql:/docker-entrypoint-initdb.d/1-init.sql
+        - ./database-scripts/2-user-priviledges.sql:/docker-entrypoint-initdb.d/2-user-priviledges.sql
       container_name: db-svc
       environment:
         - POSTGRES_DBNAME=goo
@@ -13,13 +14,9 @@ services:
         - POSTGRES_PASSWORD=goo
       ports:
         - 5432:5432
-      expose:
-        - 5432
-#  backend-svc:
-#    image: db-lab-backend
-#    restart: always
-#    container_name: backend
-#    ports:
-#      - 8080:8080
-#    expose:
-#      - 8080
+  backend-svc:
+    image: db-lab-backend
+    restart: always
+    container_name: backend
+    ports:
+      - 8080:8080

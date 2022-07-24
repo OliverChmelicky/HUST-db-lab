@@ -39,3 +39,4 @@ CREATE USER employee WITH  password 'employee';
 GRANT SELECT,UPDATE ON public."Users", public."Orders", public."ProductOrdereds" TO employee;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public."Vouchers", public."Products", public."ProductDetail", public."Stocks", public."Category"  TO employee;
 
+INSERT INTO public."Users" (uid, name, password, phonenum, address) values (5, 'Second', 'das', 'asd', 'address');

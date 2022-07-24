@@ -31,12 +31,10 @@ CREATE USER backend WITH  password 'backend';
 GRANT SELECT, INSERT, UPDATE, DELETE ON public."Users" TO backend;
 GRANT SELECT,UPDATE ON public."Vouchers", public."Orders" TO backend;
 GRANT SELECT,UPDATE, INSERT ON public."Orders", public."ProductOrdereds" TO backend;
-GRANT SELECT ON public."Products", public."ProductDetail",  public."Category", public."Stocks" TO backend;
+GRANT SELECT ON public."Products",  public."Category", public."ProductStocks" TO backend;
 
 
 --EMPLOYEE USER
 CREATE USER employee WITH  password 'employee';
 GRANT SELECT,UPDATE ON public."Users", public."Orders", public."ProductOrdereds" TO employee;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public."Vouchers", public."Products", public."ProductDetail", public."Stocks", public."Category"  TO employee;
-
-INSERT INTO public."Users" (uid, name, password, phonenum, address) values (5, 'Second', 'das', 'asd', 'address');
+GRANT SELECT, INSERT, UPDATE, DELETE ON public."Vouchers", public."Products", public."ProductStocks", public."Category"  TO employee;

@@ -64,4 +64,4 @@ CREATE INDEX ON "Vouchers" ("title");
 CREATE INDEX ON "Products" ("name");
 CREATE INDEX ON "Category" ("title");
 CREATE INDEX ON "ProductStocks" ("product_id");
-CREATE INDEX ON "ProductOrdereds" ("cart_id");s
+CREATE INDEX ON "ProductOrdereds" ("cart_id");

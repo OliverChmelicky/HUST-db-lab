@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	dsn := "postgres://goo:goo@db-svc:5432/goo?sslmode=disable"
+	dsn := "postgres://goo:goo@localhost:5432/goo?sslmode=disable"
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 
 	db := bun.NewDB(sqldb, pgdialect.New())
@@ -32,9 +32,12 @@ func main() {
 	userAccess := access.DbAccess{Db: db}
 
 	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
+	r.GET("/", func(c *gin.Context) {
 		response, code, _ := userAccess.Test()
 		c.JSON(code, gin.H{"user": response})
+	})
+	r.PUT("/user-create", func(c *gin.Context) {
+		userAccess.CreateUser(c)
 	})
 	err = r.Run() // listen and serve on 0.0.0.0:8080
 	if err != nil {

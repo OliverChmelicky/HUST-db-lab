@@ -6,7 +6,7 @@ CREATE TYPE "cart_status" AS ENUM (
     'Cancel'
 );
 CREATE TABLE "Users" (
-    "id" bigserial PRIMARY KEY,
+    "id" bigserial UNIQUE PRIMARY KEY,
     "name" varchar NOT NULL,
     "password" varchar NOT NULL,
     "phonenum" varchar NOT NULL,

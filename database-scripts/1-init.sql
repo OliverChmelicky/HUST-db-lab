@@ -2,7 +2,7 @@ DROP TABLE IF EXISTS "ProductOrdereds";
 DROP TABLE IF EXISTS "Orders";
 DROP TABLE IF EXISTS "ProductStocks";
 DROP TABLE IF EXISTS "Products";
-DROP TABLE IF EXISTS "Category";
+DROP TABLE IF EXISTS "Categories";
 DROP TABLE IF EXISTS "Vouchers";
 DROP TABLE IF EXISTS "Users";
 
@@ -44,13 +44,13 @@ CREATE TABLE "Categories" (
     "id" bigserial PRIMARY KEY,
     "title" varchar NOT NULL,
     "description" varchar,
-    "parent_cate_id" bigint DEFAULT 0 REFERENCES "Category" ("id") ON DELETE CASCADE
+    "parent_cate_id" bigint DEFAULT 0 REFERENCES "Categories" ("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "Products" (
     "id" bigserial PRIMARY KEY,
     "name" varchar NOT NULL,
-    "category_id" bigint NOT NULL DEFAULT 0 REFERENCES "Category" ("id") ON DELETE SET DEFAULT,
+    "category_id" bigint NOT NULL DEFAULT 0 REFERENCES "Categories" ("id") ON DELETE SET DEFAULT,
     "description" varchar,
     "price" integer NOT NULL
 );
@@ -66,7 +66,7 @@ CREATE TABLE "ProductStocks" (
 CREATE TABLE "Orders" (
     "id" bigserial PRIMARY KEY,
     "user_id" bigint NOT NULL REFERENCES "Users" ("id") ON DELETE CASCADE,			-- 
-    "created_at" timestamptztz NOT NULL DEFAULT 'now()',
+    "created_at" timestamptz NOT NULL DEFAULT 'now()',
     "total_price" integer NOT NULL,
     "status" cart_status NOT NULL DEFAULT 'ToPay',
     "shipping_address" varchar NOT NULL,
@@ -88,6 +88,6 @@ CREATE INDEX ON "Orders" ("user_id");
 CREATE INDEX ON "Orders" ("user_id", "status");
 CREATE INDEX ON "Vouchers" ("title");
 CREATE INDEX ON "Products" ("name");
-CREATE INDEX ON "Category" ("title");
+CREATE INDEX ON "Categories" ("title");
 CREATE INDEX ON "ProductStocks" ("product_id");
 CREATE INDEX ON "ProductOrdereds" ("cart_id");

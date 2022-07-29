@@ -1,13 +1,15 @@
-DROP TABLE IF EXISTS product_ordereds;
-DROP TABLE IF EXISTS orders;
-DROP TABLE IF EXISTS product_stocks;
-DROP TABLE IF EXISTS products;
-DROP TABLE IF EXISTS categories;
-DROP TABLE IF EXISTS vouchers;
-DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS product_ordereds CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS product_stocks CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS categories CASCADE;
+DROP TABLE IF EXISTS vouchers CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
 DROP TYPE IF EXISTS cart_status;
 DROP TYPE IF EXISTS voucher_type;
+DROP TYPE IF EXISTS size_t;
+DROP TYPE IF EXISTS color_t;
 
 CREATE TYPE cart_status AS ENUM (
     'ToPay',
@@ -15,6 +17,17 @@ CREATE TYPE cart_status AS ENUM (
     'ToReceive',
     'Completed',
     'Cancel'
+);
+
+CREATE TYPE size_t AS ENUM (
+    'XS', 'S',
+    'M',
+    'L', 'XL', 'XXL'
+);
+
+CREATE TYPE color_t AS ENUM (
+    'White', 'Gray', 'Black',
+    'Red', 'Orange', 'Beige', 'Brown', 'Blue', 'Green'
 );
 
 CREATE TYPE voucher_type AS ENUM (
@@ -33,9 +46,9 @@ CREATE TABLE users (
 
 CREATE TABLE vouchers (
     id bigserial PRIMARY KEY,
-    title varchar NOT NULL,
+    title varchar,
     type voucher_type NOT NULL,
-    condition NUMERIC(2) NOT NULL DEFAULT 0,
+    condition float NOT NULL DEFAULT 0,
     value integer NOT NULL,
     date_expire timestamptz NOT NULL
 );
@@ -44,13 +57,13 @@ CREATE TABLE categories (
     id bigserial PRIMARY KEY,
     title varchar NOT NULL,
     description varchar,
-    parent_cate_id bigint DEFAULT 0 REFERENCES categories (id) ON DELETE CASCADE
+    parent_cate_id bigint DEFAULT 1 REFERENCES categories (id) ON DELETE CASCADE
 );
 
 CREATE TABLE products (
     id bigserial PRIMARY KEY,
     name varchar NOT NULL,
-    category_id bigint NOT NULL DEFAULT 0 REFERENCES categories (id) ON DELETE SET DEFAULT,
+    category_id bigint NOT NULL DEFAULT 1 REFERENCES categories (id) ON DELETE SET DEFAULT,
     description varchar,
     price integer NOT NULL
 );
@@ -58,8 +71,8 @@ CREATE TABLE products (
 CREATE TABLE product_stocks (
     id bigserial PRIMARY KEY,
     product_id bigint REFERENCES products (id) ON DELETE CASCADE,
-    color varchar NOT NULL,
-    size varchar NOT NULL,
+    size size_t NOT NULL,
+    color color_t NOT NULL,
     quantity_remain integer NOT NULL
 );
 
@@ -69,12 +82,11 @@ CREATE TABLE orders (
     created_at timestamptz NOT NULL DEFAULT 'now()',
     status cart_status NOT NULL DEFAULT 'ToPay',
     shipping_address varchar NOT NULL,
-    shipping_fee integer NOT NULL,
-    voucher_id bigint NOT NULL REFERENCES vouchers (id) ON DELETE CASCADE,	--
-    total_price integer NOT NULL,
-    payment_info varchar NOT NULL
+    shipping_fee integer DEFAULT 0 NOT NULL,
+    voucher_id bigint REFERENCES vouchers (id) ON DELETE CASCADE,	--
+    total_price integer DEFAULT 0 NOT NULL,
+    payment_info varchar DEFAULT 'COD' NOT NULL
 );
-
 
 CREATE TABLE product_ordereds (
     id bigserial PRIMARY KEY,

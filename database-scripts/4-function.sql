@@ -18,7 +18,7 @@ DROP TRIGGER IF EXISTS voucher_insert_tgr
 ON vouchers CASCADE;
 
 CREATE TRIGGER voucher_insert_tgr
-BEFORE INSERT ON vouchers
+BEFORE UPDATE OR INSERT ON vouchers
 FOR EACH ROW EXECUTE PROCEDURE voucher_insert_tgr_fnc();
 
 -- update order status -> update purchase price, total price, stock remain, shipping address if null--

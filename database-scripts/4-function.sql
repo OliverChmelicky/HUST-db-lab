@@ -74,7 +74,7 @@ BEGIN
 	END IF;
 	
 	NEW.purchase_price := (SELECT price FROM products p, product_stocks s
-		WHERE stock_id    = s.id
+		WHERE NEW.stock_id    = s.id
 	  	AND s.product_id  = p.id);
 	NEW.total_price := COALESCE(NEW.purchase_price * NEW.quantity, 0);
 

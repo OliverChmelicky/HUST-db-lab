@@ -85,7 +85,8 @@ CREATE TABLE orders (
     shipping_address varchar,
     voucher_id bigint REFERENCES vouchers (id) ON DELETE CASCADE,	--
     total_price integer DEFAULT 0 NOT NULL,
-    payment_method varchar DEFAULT 'COD' NOT NULL
+    payment_method varchar DEFAULT 'COD' NOT NULL,
+    UNIQUE (user_id, voucher_id)
 );
 
 CREATE TABLE product_ordereds (

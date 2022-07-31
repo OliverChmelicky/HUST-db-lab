@@ -29,19 +29,23 @@ func main() {
 		return
 	}
 
-	userAccess := access.DbAccess{Db: db}
+	databaseAccess := access.DbAccess{Db: db}
 
 	r := gin.Default()
 
 	r.POST("/user", func(c *gin.Context) {
-		userAccess.CreateUser(c)
+		databaseAccess.CreateUser(c)
 	})
 	r.GET("/user", func(c *gin.Context) {
-		userAccess.GetUserById(c)
+		databaseAccess.GetUserById(c)
 	})
 
 	r.PUT("/user", func(c *gin.Context) {
-		userAccess.UpdateUser(c)
+		databaseAccess.UpdateUser(c)
+	})
+
+	r.DELETE("/user", func(c *gin.Context) {
+		databaseAccess.DeleteUser(c)
 	})
 
 	err = r.Run("0.0.0.0:8080") // listen and serve on 0.0.0.0:8080

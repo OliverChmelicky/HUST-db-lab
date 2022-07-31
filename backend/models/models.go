@@ -6,7 +6,7 @@ import (
 )
 
 type User struct {
-	bun.BaseModel `bun:"table:Users,alias:u"`
+	bun.BaseModel `bun:"table:users,alias:u"`
 	Id            int `bun:"id,pk,autoincrement"`
 	Name          string
 	Password      string
@@ -15,7 +15,7 @@ type User struct {
 }
 
 type UserCreate struct {
-	bun.BaseModel `bun:"table:Users,alias:u"`
+	bun.BaseModel `bun:"table:users,alias:u"`
 	Name          string
 	Password      string
 	Phonenum      string

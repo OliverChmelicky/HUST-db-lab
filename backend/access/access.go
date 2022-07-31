@@ -66,8 +66,6 @@ func (DbAccess *DbAccess) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(input)
-
 	_, err := DbAccess.Db.NewUpdate().Model(input).Where("id = ?", input.Id).Exec(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -77,7 +75,31 @@ func (DbAccess *DbAccess) UpdateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"user": input})
 }
 func (DbAccess *DbAccess) DeleteUser(c *gin.Context) {
-	c.Writer.WriteHeader(http.StatusNotImplemented)
+	fmt.Println(c.Request.URL)
+	fmt.Println(c.Request.URL.Query())
+
+	queryParams := c.Request.URL.Query()
+	id, ok := queryParams["id"]
+	if !ok {
+		_ = c.AbortWithError(400, fmt.Errorf("you have to specify user id"))
+		return
+	}
+
+	intId, err := strconv.Atoi(id[0])
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	res, err := DbAccess.Db.NewDelete().Model(&models.User{}).Where("id = ?", intId).Exec(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	fmt.Println(res)
+
+	c.Writer.WriteHeader(http.StatusOK)
+	return
 }
 
 // TODO delete

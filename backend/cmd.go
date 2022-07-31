@@ -32,14 +32,19 @@ func main() {
 	userAccess := access.DbAccess{Db: db}
 
 	r := gin.Default()
-	r.GET("/", func(c *gin.Context) {
-		response, code, _ := userAccess.Test()
-		c.JSON(code, gin.H{"user": response})
-	})
-	r.PUT("/user-create", func(c *gin.Context) {
+
+	r.POST("/user", func(c *gin.Context) {
 		userAccess.CreateUser(c)
 	})
-	err = r.Run() // listen and serve on 0.0.0.0:8080
+	r.GET("/user", func(c *gin.Context) {
+		userAccess.GetUserById(c)
+	})
+
+	r.PUT("/user", func(c *gin.Context) {
+		userAccess.UpdateUser(c)
+	})
+
+	err = r.Run("0.0.0.0:8081") // listen and serve on 0.0.0.0:8080
 	if err != nil {
 		fmt.Println(err)
 	}

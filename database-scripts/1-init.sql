@@ -79,7 +79,7 @@ CREATE TABLE product_stocks (
 
 CREATE TABLE orders (
     id bigserial PRIMARY KEY,
-    user_id bigint NOT NULL REFERENCES users (id) ON DELETE CASCADE,			-- 
+    user_id bigint NOT NULL REFERENCES users (id) ON DELETE SET NULL ,			--
     created_at timestamptz NOT NULL DEFAULT 'now()',
     status cart_status NOT NULL DEFAULT 'ToPay',
     shipping_address varchar,

@@ -48,7 +48,7 @@ CREATE TABLE vouchers (
     id bigserial PRIMARY KEY,
     title varchar,
     type voucher_type NOT NULL,
-    condition float NOT NULL DEFAULT 0,
+    condition integer NOT NULL DEFAULT 0,
     value integer NOT NULL,
     date_expire timestamptz NOT NULL
 );
@@ -73,7 +73,8 @@ CREATE TABLE product_stocks (
     product_id bigint REFERENCES products (id) ON DELETE CASCADE,
     size size_t NOT NULL,
     color color_t NOT NULL,
-    quantity_remain integer NOT NULL
+    quantity_remain integer NOT NULL,
+    UNIQUE (product_id, size, color)
 );
 
 CREATE TABLE orders (
@@ -81,19 +82,19 @@ CREATE TABLE orders (
     user_id bigint NOT NULL REFERENCES users (id) ON DELETE CASCADE,			-- 
     created_at timestamptz NOT NULL DEFAULT 'now()',
     status cart_status NOT NULL DEFAULT 'ToPay',
-    shipping_address varchar NOT NULL,
-    shipping_fee integer DEFAULT 0 NOT NULL,
+    shipping_address varchar,
     voucher_id bigint REFERENCES vouchers (id) ON DELETE CASCADE,	--
     total_price integer DEFAULT 0 NOT NULL,
-    payment_info varchar DEFAULT 'COD' NOT NULL
+    payment_method varchar DEFAULT 'COD' NOT NULL
 );
 
 CREATE TABLE product_ordereds (
     id bigserial PRIMARY KEY,
     cart_id bigint NOT NULL REFERENCES orders (id) ON DELETE CASCADE,					--
     stock_id bigint NOT NULL REFERENCES product_stocks (id)  ON DELETE CASCADE,			--
-    purchase_price int, 
-    quantity integer NOT NULL
+    purchase_price int,
+    quantity integer NOT NULL,
+    total_price bigint
 );
 
 CREATE INDEX ON users (name);

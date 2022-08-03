@@ -93,7 +93,8 @@ CREATE TABLE product_ordereds (
     order_id bigint NOT NULL REFERENCES orders (id) ON DELETE CASCADE,					--
     stock_id bigint NOT NULL REFERENCES product_stocks (id)  ON DELETE CASCADE,			--
     purchase_price int,
-    quantity integer NOT NULL
+    quantity integer NOT NULL,
+    UNIQUE (order_id, stock_id)
 --     total_price biginta
 );
 

@@ -1,3 +1,166 @@
+CREATE OR REPLACE FUNCTION get_order_total_price_fnc(_order_id bigint)
+	RETURNS BIGINT
+	LANGUAGE plpgsql
+AS $$
+BEGIN
+	RETURN (SELECT COALESCE(SUM(purchase_price * quantity), 0) FROM product_ordereds WHERE order_id = _order_id);
+END;
+$$;
+
+-------------------------------------------------------------
+-- product price changes THEN purchase_price changes --
+CREATE OR REPLACE FUNCTION update_purchase_price()
+	RETURNS trigger
+ 	LANGUAGE plpgsql
+AS $function$
+BEGIN
+	UPDATE product_ordereds
+	SET purchase_price = NEW.price
+	FROM product_stocks ps
+	WHERE stock_id = ps.id
+	  AND ps.product_id = NEW.id;
+
+	RETURN NEW;	
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS tr_product_price_changes ON products CASCADE;
+CREATE TRIGGER tr_product_price_changes
+AFTER UPDATE ON products
+FOR EACH ROW EXECUTE PROCEDURE update_purchase_price();
+
+-------------------------------------------------------------
+-- purchase_price, quantity changes THEN total price changes--
+CREATE OR REPLACE FUNCTION update_total_price()
+	RETURNS trigger
+ 	LANGUAGE plpgsql
+AS $function$
+BEGIN
+	UPDATE orders
+	SET total_price = get_order_total_price_fnc(NEW.order_id) 
+	WHERE id = NEW.order_id;
+	
+	NEW.purchase_price := (SELECT COALESCE(price, 0) FROM products p, product_stocks s WHERE p.id = s.product_id AND s.id = NEW.stock_id);
+	
+	RETURN NEW;	
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS tr_purchase_price_changes ON product_ordereds CASCADE;
+CREATE TRIGGER tr_purchase_price_changes
+AFTER UPDATE OR INSERT ON product_ordereds
+FOR EACH ROW EXECUTE PROCEDURE update_total_price();
+
+-------------------------------------------------------------
+CREATE OR REPLACE FUNCTION check_product_ordereds_update()
+	RETURNS trigger
+ 	LANGUAGE plpgsql
+AS $function$
+BEGIN
+	IF (SELECT status FROM orders WHERE id = NEW.order_id) = 'ToPay'
+	AND (SELECT status FROM orders WHERE id = OLD.order_id) = 'ToPay'
+	THEN RETURN NEW;
+	END IF;
+	RETURN OLD;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS tr_check_product_ordereds_update ON product_ordereds CASCADE;
+CREATE TRIGGER tr_check_product_ordereds_update
+BEFORE UPDATE ON product_ordereds
+FOR EACH ROW EXECUTE PROCEDURE check_product_ordereds_update();
+-------------------------------------------------------------
+CREATE OR REPLACE FUNCTION check_product_ordereds_insert()
+	RETURNS trigger
+ 	LANGUAGE plpgsql
+AS $function$
+BEGIN
+	IF (SELECT status FROM orders WHERE id = NEW.order_id) = 'ToPay'
+	THEN
+		IF NEW.quantity > (SELECT quantity_remain FROM product_stocks WHERE id = NEW.stock_id)
+		THEN NEW.quantity := (SELECT quantity_remain FROM product_stocks WHERE id = NEW.stock_id);
+		END IF;
+		NEW.purchase_price := (SELECT price FROM products p, product_stocks s WHERE p.id = s.product_id AND s.id = NEW.stock_id);
+		RETURN NEW;
+	END IF;
+	RETURN NULL;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS tr_check_product_ordereds_insert ON product_ordereds CASCADE;
+CREATE TRIGGER tr_check_product_ordereds_insert
+BEFORE INSERT or UPDATE ON product_ordereds
+FOR EACH ROW EXECUTE PROCEDURE check_product_ordereds_insert();
+-------------------------------------------------------------
+CREATE OR REPLACE FUNCTION check_update_order()
+	RETURNS trigger
+ 	LANGUAGE plpgsql
+AS $function$
+BEGIN
+	IF NEW.status != 'ToPay' --AND OLD.status = 'ToPay'
+	THEN
+		OLD.status := NEW.status;
+		IF NEW.shipping_address IS NULL
+		THEN OLD.shipping_address :=(SELECT address FROM users WHERE id = NEW.user_id);
+		END IF;
+		RETURN OLD;
+	END IF;
+	
+	RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS tr_check_update_order ON orders CASCADE;
+CREATE TRIGGER tr_check_update_order
+BEFORE UPDATE ON orders
+FOR EACH ROW EXECUTE PROCEDURE check_update_order();
+
+-------------------------------------------------------------
+-- status change then -> quantity remain 
+CREATE OR REPLACE FUNCTION reduce_quantity_remain()
+	RETURNS trigger
+ 	LANGUAGE plpgsql
+AS $function$
+BEGIN
+	IF NEW.status = 'ToShip'
+	THEN 
+		UPDATE product_stocks
+		SET quantity_remain = quantity_remain - quantity
+		FROM product_ordereds po
+		WHERE NEW.id = po.order_id
+		  AND po.stock_id = product_stocks.id;
+	END IF;
+	RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS tr_reduce_quantity_remain ON orders CASCADE;
+CREATE TRIGGER tr_reduce_quantity_remain
+AFTER UPDATE ON orders
+FOR EACH ROW EXECUTE PROCEDURE reduce_quantity_remain();
+
+-------------------------------------------------------------
+-- quantity remain change -> reduce quantity ordered
+CREATE OR REPLACE FUNCTION reduce_quantity_ordered()
+	RETURNS trigger
+ 	LANGUAGE plpgsql
+AS $function$
+BEGIN
+	UPDATE product_ordereds
+	SET quantity = NEW.quantity_remain
+	WHERE stock_id = NEW.id
+	  AND quantity > NEW.quantity_remain;
+	  
+	RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS tr_reduce_quantity_ordered ON product_stocks CASCADE;
+CREATE TRIGGER tr_reduce_quantity_ordered
+AFTER UPDATE ON product_stocks
+FOR EACH ROW EXECUTE PROCEDURE reduce_quantity_ordered();
+
+------------------------------------------------------------
 -- trigger insert new voucher -> create its title --
 CREATE OR REPLACE FUNCTION public.voucher_insert_tgr_fnc()
 	RETURNS trigger
@@ -7,8 +170,6 @@ BEGIN
 	IF NEW.type = 'Cash' THEN NEW.title := to_char(NEW.value,'FM999G999G999G999') || 'vnd off total bill for order from ' || to_char(NEW.condition,'FM999G999G999G999') || 'vnd.';
 	END IF;
 	IF NEW.type = 'Discount' THEN NEW.title := NEW.value || '% off total bill for order from ' || to_char(NEW.condition,'FM999G999G999G999') || 'vnd.';
-	END IF;
-	IF NEW.type = 'FreeShip' THEN NEW.title := 'FreeShip for order from ' || to_char(NEW.condition,'FM999G999G999G999') || 'vnd.';
 	END IF;
 RETURN NEW;
 END;
@@ -21,107 +182,14 @@ CREATE TRIGGER voucher_insert_tgr
 BEFORE UPDATE OR INSERT ON vouchers
 FOR EACH ROW EXECUTE PROCEDURE voucher_insert_tgr_fnc();
 
--- update order status -> update purchase price, total price, stock remain, shipping address if null--
-CREATE OR REPLACE FUNCTION public.order_status_update_tgr_fnc()
-	RETURNS trigger
- 	LANGUAGE plpgsql
-AS $function$
-BEGIN
-	IF NEW.status = 'ToShip'
-	THEN
-		UPDATE product_ordereds
-		SET purchase_price = products.price,
-			total_price = products.price*quantity
-		FROM product_stocks, products
-		WHERE NEW.id = order_id
-		  AND stock_id = product_stocks.id
-		  AND product_stocks.id = products.id;
 
-		UPDATE product_stocks
-		SET quantity_remain = quantity_remain - product_ordereds.quantity
-		FROM product_ordereds
-		WHERE NEW.id = product_ordereds.order_id
-		  AND product_ordereds.stock_id = product_stocks.id;
 
-		IF coalesce(TRIM(NEW.shipping_address), '') = ''
-		THEN
-			NEW.shipping_address := (SELECT address FROM users WHERE users.id = NEW.user_id);
-		END IF;
 
-	END IF;
-RETURN NEW;
-END;
-$function$;
 
-DROP TRIGGER IF EXISTS order_status_update_tgr
-ON orders CASCADE;
 
-CREATE TRIGGER order_status_update_tgr
-BEFORE UPDATE ON orders
-FOR EACH ROW EXECUTE PROCEDURE order_status_update_tgr_fnc();
 
--- update product_ordered to notPaid_status cart -> update total_price --
 
-CREATE OR REPLACE FUNCTION public.product_ordered_insert_tgr_fnc()
-	RETURNS trigger
- 	LANGUAGE plpgsql
-AS $function$
-BEGIN
-	PERFORM * FROM orders
-	WHERE NEW.order_id = orders.id
-	  AND orders.status = 'ToPay';
-	IF NOT FOUND THEN RETURN NULL;
-	END IF;
 
-	NEW.purchase_price := (SELECT price FROM products p, product_stocks s
-		WHERE NEW.stock_id    = s.id
-	  	AND s.product_id  = p.id);
-	NEW.total_price := COALESCE(NEW.purchase_price * NEW.quantity, 0);
-
-	UPDATE orders
-	SET total_price = (SELECT COALESCE(SUM(total_price), 0) FROM product_ordereds WHERE product_ordereds.order_id = NEW.order_id);
-
-	RETURN NEW;
-END;
-$function$;
-
-DROP TRIGGER IF EXISTS product_ordered_insert_tgr
-ON product_ordereds CASCADE;
-
-CREATE TRIGGER product_ordered_insert_tgr
-BEFORE INSERT ON product_ordereds
-FOR EACH ROW EXECUTE PROCEDURE product_ordered_insert_tgr_fnc();
-
-CREATE TRIGGER product_ordered_update_tgr
-BEFORE UPDATE ON product_ordereds
-FOR EACH ROW EXECUTE PROCEDURE product_ordered_insert_tgr_fnc();
-
------------------------
-
-CREATE OR REPLACE FUNCTION product_price_update_trg_fnc()
-	RETURNS trigger
- 	LANGUAGE plpgsql
-AS $function$
-BEGIN
-	UPDATE product_ordereds
-	SET purchase_price = NEW.price,
-		total_price    = NEW.price * quantity
-	FROM products p, product_stocks s, orders
-	WHERE order_id       = orders.id
-	  AND stock_id      = s.id
-	  AND s.product_id  = NEW.id
-	  AND orders.status = 'ToPay';
-
-	RETURN NEW;
-END;
-$function$;
-
-DROP TRIGGER IF EXISTS product_price_update_trg
-ON products CASCADE;
-
-CREATE TRIGGER product_price_update_trg
-AFTER UPDATE ON products
-FOR EACH ROW EXECUTE PROCEDURE product_price_update_trg_fnc();
 
 
 

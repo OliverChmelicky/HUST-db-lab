@@ -1,6 +1,6 @@
-DROP VIEW IF EXISTS product_detail_mv CASCADE;
+DROP VIEW IF EXISTS product_detail CASCADE;
 
-CREATE VIEW product_detail_mv
+CREATE VIEW product_detail
 AS
 	SELECT p.id,
 		c.title AS category,

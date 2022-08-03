@@ -1,26 +1,26 @@
--- -- trigger insert new voucher -> create its title --
--- CREATE OR REPLACE FUNCTION public.voucher_insert_tgr_fnc()
--- 	RETURNS trigger
---  	LANGUAGE plpgsql
--- AS $function$
--- BEGIN
--- 	IF NEW.type = 'Cash' THEN NEW.title := to_char(NEW.value,'FM999G999G999G999') || 'vnd off total bill for order from ' || to_char(NEW.condition,'FM999G999G999G999') || 'vnd.';
--- 	END IF;
--- 	IF NEW.type = 'Discount' THEN NEW.title := NEW.value || '% off total bill for order from ' || to_char(NEW.condition,'FM999G999G999G999') || 'vnd.';
--- 	END IF;
--- 	IF NEW.type = 'FreeShip' THEN NEW.title := 'FreeShip for order from ' || to_char(NEW.condition,'FM999G999G999G999') || 'vnd.';
--- 	END IF;
--- RETURN NEW;
--- END;
--- $function$;
---
--- DROP TRIGGER IF EXISTS voucher_insert_tgr
--- ON vouchers CASCADE;
---
--- CREATE TRIGGER voucher_insert_tgr
--- BEFORE INSERT ON vouchers
--- FOR EACH ROW EXECUTE PROCEDURE voucher_insert_tgr_fnc();
---
+-- trigger insert new voucher -> create its title --
+CREATE OR REPLACE FUNCTION public.voucher_insert_tgr_fnc()
+	RETURNS trigger
+ 	LANGUAGE plpgsql
+AS $function$
+BEGIN
+	IF NEW.type = 'Cash' THEN NEW.title := to_char(NEW.value,'FM999G999G999G999') || 'vnd off total bill for order from ' || to_char(NEW.condition,'FM999G999G999G999') || 'vnd.';
+	END IF;
+	IF NEW.type = 'Discount' THEN NEW.title := NEW.value || '% off total bill for order from ' || to_char(NEW.condition,'FM999G999G999G999') || 'vnd.';
+	END IF;
+	IF NEW.type = 'FreeShip' THEN NEW.title := 'FreeShip for order from ' || to_char(NEW.condition,'FM999G999G999G999') || 'vnd.';
+	END IF;
+RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS voucher_insert_tgr
+ON vouchers CASCADE;
+
+CREATE TRIGGER voucher_insert_tgr
+BEFORE INSERT ON vouchers
+FOR EACH ROW EXECUTE PROCEDURE voucher_insert_tgr_fnc();
+
 -- -- update order status -> update purchase price, total price, stock remain, shipping address if null--
 -- CREATE OR REPLACE FUNCTION public.order_status_update_tgr_fnc()
 -- 	RETURNS trigger
@@ -137,7 +137,6 @@ AS $function$
 
 BEGIN
 
-raise notice 'START: %', NEW;
 IF NEW.voucher_id IS NULL
     THEN
         RETURN NEW;
@@ -150,8 +149,6 @@ END IF;
             raise notice 'INTEGRITY ERR- VOUCHER EXPIRED';
             RAISE EXCEPTION integrity_constraint_violation;
     end IF;
-
-RAISE NOTICE 'idemeeee';
 
     IF EXISTS (
         SELECT 1 from vouchers where NEW.voucher_id = vouchers.id AND vouchers.condition <=
@@ -174,15 +171,66 @@ END;
 $function$;
 
 
-    -- create triggers
-DROP TRIGGER IF EXISTS assign_voucher_to_order_trg_insert
-ON orders CASCADE;
-CREATE TRIGGER assign_voucher_to_order_trg_insert
-    BEFORE INSERT ON orders
-    FOR EACH ROW EXECUTE PROCEDURE assign_voucher_to_order_trg_fnc();
-
 DROP TRIGGER IF EXISTS assign_voucher_to_order_trg_update
     ON orders CASCADE;
 CREATE TRIGGER assign_voucher_to_order_trg_update
     BEFORE UPDATE ON orders
     FOR EACH ROW EXECUTE PROCEDURE assign_voucher_to_order_trg_fnc();
+
+
+
+CREATE OR REPLACE FUNCTION update_prices_of_order_if_voucher_used_trg_fnc()
+    RETURNS trigger
+    LANGUAGE plpgsql
+AS $function$
+DECLARE
+    _voucher_type text := '';
+    _voucher_value integer := 0;
+BEGIN
+
+    IF NEW.voucher_id IS NULL
+    THEN
+        RETURN NEW;
+    END IF;
+
+    IF NEW.status != 'ToShip'
+    THEN
+        RETURN NEW;
+    END IF;
+
+    _voucher_type := (select type from vouchers where id = NEW.voucher_id);
+    _voucher_value:= (select value from vouchers where id = NEW.voucher_id);
+    raise notice 'VOUCHER TYPE %', _voucher_type;
+    raise notice 'VOUCHER VALUE %', _voucher_value;
+
+    IF _voucher_type = 'Cash'
+        THEN NEW.total_price = (
+                        select sum(product_price) from (
+                            select (po.quantity*p.price) as product_price from orders o
+                            join product_ordereds po on po.cart_id = o.id
+                            join product_stocks ps on ps.id = po.stock_id
+                            join products p on ps.product_id = p.id
+                            where o.id = NEW.id
+                            ) as TotalPrice) - _voucher_value;
+        raise notice 'NEW PRICE cash: %', NEW.total_price;
+        ELSIF _voucher_type = 'Discount'
+        THEN NEW.total_price = (
+                select sum(product_price) from (
+                select (po.quantity*p.price) as product_price from orders o
+                     join product_ordereds po on po.cart_id = o.id
+                     join product_stocks ps on ps.id = po.stock_id
+                     join products p on ps.product_id = p.id
+                        where o.id = NEW.id) as TotalPrice);
+                NEW.total_price = NEW.total_price - NEW.total_price/100 * _voucher_value;
+        raise notice 'NEW PRICE discount: %', NEW.total_price;
+        END IF;
+
+    RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS update_prices_of_order_if_voucher_used_trg
+    ON orders CASCADE;
+CREATE TRIGGER update_prices_of_order_if_voucher_used_trg
+    BEFORE UPDATE ON orders
+    FOR EACH ROW EXECUTE PROCEDURE update_prices_of_order_if_voucher_used_trg_fnc();

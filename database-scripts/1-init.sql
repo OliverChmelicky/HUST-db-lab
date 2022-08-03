@@ -32,8 +32,7 @@ CREATE TYPE color_t AS ENUM (
 
 CREATE TYPE voucher_type AS ENUM (
     'Cash',
-    'Discount',
-    'FreeShip'
+    'Discount'
 );
 
 CREATE TABLE users (

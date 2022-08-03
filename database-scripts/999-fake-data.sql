@@ -12,7 +12,7 @@ INSERT INTO users (name, password, phonenum, address) VALUES ('Anette Gippes', '
 INSERT INTO users (name, password, phonenum, address) VALUES ('Didi Tante', 'Z8lHtVYxez', '049 917 5366', '03 Meadow Ridge Point');
 INSERT INTO users (name, password, phonenum, address) VALUES ('Ortensia Leeman', 'm4YPNK4aCh0', '061 772 9248', '746 Delladonna Trail');
 
-INSERT INTO vouchers (type, condition, value, date_expire) VALUES ('FreeShip', 200000, 15000, '7/9/2022');
+INSERT INTO vouchers (type, condition, value, date_expire) VALUES ('FreeShip', 200000, 15000, '12/31/2044');
 INSERT INTO vouchers (type, condition, value, date_expire) VALUES ('Discount', 500000, 15, '6/21/2022');
 INSERT INTO vouchers (type, condition, value, date_expire) VALUES ('Discount', 700000, 20, '12/31/2021');
 INSERT INTO vouchers (type, condition, value, date_expire) VALUES ('Discount', 1000000, 30, '10/26/2021');

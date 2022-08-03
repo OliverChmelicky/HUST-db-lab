@@ -162,12 +162,25 @@ ELSE
             RAISE EXCEPTION integrity_constraint_violation;
 end IF;
 raise notice 'END';
+
+    --TODO condition check
+
+--     SELECT condition from vouchers where NEW.voucher_id = vouchers.id AND CONDITION IS < THAN TOTAL PRICE
+-- select sum(product_price) from (
+--     select (po.quantity*p.price) as product_price from product_ordereds po
+--     join product_stocks ps on ps.id = po.stock_id
+--     join products p on ps.product_id = p.id
+--     where po.cart_id = 1
+--     group by product_price
+-- ) as nameOfTable;
+
 END;
 $function$;
 
+
+    -- create triggers
 DROP TRIGGER IF EXISTS assign_voucher_to_order_trg_insert
 ON orders CASCADE;
-
 CREATE TRIGGER assign_voucher_to_order_trg_insert
     BEFORE INSERT ON orders
     FOR EACH ROW EXECUTE PROCEDURE assign_voucher_to_order_trg_fnc();
@@ -177,5 +190,3 @@ DROP TRIGGER IF EXISTS assign_voucher_to_order_trg_update
 CREATE TRIGGER assign_voucher_to_order_trg_update
     BEFORE UPDATE ON orders
     FOR EACH ROW EXECUTE PROCEDURE assign_voucher_to_order_trg_fnc();
-
-UPDATE public.orders SET voucher_id = 1 WHERE id = 2

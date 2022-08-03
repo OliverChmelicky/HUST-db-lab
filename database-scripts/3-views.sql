@@ -30,7 +30,7 @@ AS
         p.name,
         c.title
         FROM orders o
-            JOIN product_ordereds po ON (o.id = po.cart_id)
+            JOIN product_ordereds po ON (o.id = po.order_id)
             JOIN product_stocks ps ON (po.stock_id = ps.id)
             JOIN products p ON (ps.product_id = p.id)
             JOIN categories c ON (p.category_id = c.id)

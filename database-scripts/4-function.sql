@@ -33,14 +33,14 @@ BEGIN
 		SET purchase_price = products.price,
 			total_price = products.price*quantity
 		FROM product_stocks, products
-		WHERE NEW.id = cart_id
+		WHERE NEW.id = order_id
 		  AND stock_id = product_stocks.id
 		  AND product_stocks.id = products.id;
 
 		UPDATE product_stocks
 		SET quantity_remain = quantity_remain - product_ordereds.quantity
 		FROM product_ordereds
-		WHERE NEW.id = product_ordereds.cart_id
+		WHERE NEW.id = product_ordereds.order_id
 		  AND product_ordereds.stock_id = product_stocks.id;
 
 		IF coalesce(TRIM(NEW.shipping_address), '') = ''
@@ -68,7 +68,7 @@ CREATE OR REPLACE FUNCTION public.product_ordered_insert_tgr_fnc()
 AS $function$
 BEGIN
 	PERFORM * FROM orders
-	WHERE NEW.cart_id = orders.id
+	WHERE NEW.order_id = orders.id
 	  AND orders.status = 'ToPay';
 	IF NOT FOUND THEN RETURN NULL;
 	END IF;
@@ -79,7 +79,7 @@ BEGIN
 	NEW.total_price := COALESCE(NEW.purchase_price * NEW.quantity, 0);
 
 	UPDATE orders
-	SET total_price = (SELECT COALESCE(SUM(total_price), 0) FROM product_ordereds WHERE product_ordereds.cart_id = NEW.cart_id);
+	SET total_price = (SELECT COALESCE(SUM(total_price), 0) FROM product_ordereds WHERE product_ordereds.order_id = NEW.order_id);
 
 	RETURN NEW;
 END;
@@ -107,7 +107,7 @@ BEGIN
 	SET purchase_price = NEW.price,
 		total_price    = NEW.price * quantity
 	FROM products p, product_stocks s, orders
-	WHERE cart_id       = orders.id
+	WHERE order_id       = orders.id
 	  AND stock_id      = s.id
 	  AND s.product_id  = NEW.id
 	  AND orders.status = 'ToPay';
@@ -154,7 +154,7 @@ END IF;
         SELECT 1 from vouchers where NEW.voucher_id = vouchers.id AND vouchers.condition <=
         (select sum(product_price) from (
             select (po.quantity*p.price) as product_price from orders o
-            join product_ordereds po on po.cart_id = o.id
+            join product_ordereds po on po.order_id = o.id
             join product_stocks ps on ps.id = po.stock_id
             join products p on ps.product_id = p.id
             where o.id = NEW.id
@@ -207,7 +207,7 @@ BEGIN
         THEN NEW.total_price = (
                         select sum(product_price) from (
                             select (po.quantity*p.price) as product_price from orders o
-                            join product_ordereds po on po.cart_id = o.id
+                            join product_ordereds po on po.order_id = o.id
                             join product_stocks ps on ps.id = po.stock_id
                             join products p on ps.product_id = p.id
                             where o.id = NEW.id
@@ -217,7 +217,7 @@ BEGIN
         THEN NEW.total_price = (
                 select sum(product_price) from (
                 select (po.quantity*p.price) as product_price from orders o
-                     join product_ordereds po on po.cart_id = o.id
+                     join product_ordereds po on po.order_id = o.id
                      join product_stocks ps on ps.id = po.stock_id
                      join products p on ps.product_id = p.id
                         where o.id = NEW.id) as TotalPrice);

@@ -129,11 +129,6 @@
 
 
 
-
-
-
-
-
 -- Check if voucher is valid when assigning to order
 CREATE OR REPLACE FUNCTION assign_voucher_to_order_trg_fnc()
     RETURNS trigger
@@ -141,39 +136,40 @@ CREATE OR REPLACE FUNCTION assign_voucher_to_order_trg_fnc()
 AS $function$
 
 BEGIN
--- TODO new total price has to be calculated before this trigger runs and check the condition
+
 raise notice 'START: %', NEW;
 IF NEW.voucher_id IS NULL
     THEN
-        raise notice 'RETURNING: %', NEW.voucher_id;
-RETURN NEW;
-ELSE
-        raise notice 'WHY: %', NEW.voucher_id;
+        RETURN NEW;
 END IF;
 
-    IF NEW.voucher_id IS NOT NULL and EXISTS(
+    IF NOT EXISTS(
         SELECT * from vouchers where id = NEW.voucher_id and date_expire >= (SELECT CURRENT_TIMESTAMP)
         )
         THEN
-            raise notice 'OK';
-RETURN NEW; -- ok
-ELSE
-            raise notice 'INTEGRITY ERR';
+            raise notice 'INTEGRITY ERR- VOUCHER EXPIRED';
             RAISE EXCEPTION integrity_constraint_violation;
-end IF;
-raise notice 'END';
+    end IF;
 
-    --TODO condition check
+RAISE NOTICE 'idemeeee';
 
---     SELECT condition from vouchers where NEW.voucher_id = vouchers.id AND CONDITION IS < THAN TOTAL PRICE
--- select sum(product_price) from (
---     select (po.quantity*p.price) as product_price from product_ordereds po
---     join product_stocks ps on ps.id = po.stock_id
---     join products p on ps.product_id = p.id
---     where po.cart_id = 1
---     group by product_price
--- ) as nameOfTable;
+    IF EXISTS (
+        SELECT 1 from vouchers where NEW.voucher_id = vouchers.id AND vouchers.condition <=
+        (select sum(product_price) from (
+            select (po.quantity*p.price) as product_price from orders o
+            join product_ordereds po on po.cart_id = o.id
+            join product_stocks ps on ps.id = po.stock_id
+            join products p on ps.product_id = p.id
+            where o.id = NEW.id
+            ) as TotalPrice)
+        )   THEN
+                raise notice 'OK';
+            ELSE
+            raise notice 'INTEGRITY ERR - CONDITION';
+            RAISE EXCEPTION integrity_constraint_violation;
+    end IF;
 
+    RETURN NEW;
 END;
 $function$;
 

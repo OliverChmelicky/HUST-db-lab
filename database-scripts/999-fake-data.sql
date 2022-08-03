@@ -55,7 +55,7 @@ INSERT INTO product_stocks (product_id, size, color, quantity_remain) VALUES (2,
 INSERT INTO product_stocks (product_id, size, color, quantity_remain) VALUES (2, 'M', 'Brown', 85);
 INSERT INTO product_stocks (product_id, size, color, quantity_remain) VALUES (2, 'XL', 'Brown', 0);
 
-INSERT INTO orders (user_id, status, shipping_address, voucher_id) VALUES (1, 'ToPay', 'So 1 Dai Co Viet', 1);
+INSERT INTO orders (user_id, status, shipping_address, voucher_id) VALUES (1, 'ToPay', 'So 1 Dai Co Viet', null);
 INSERT INTO orders (user_id, status) VALUES (2, 'ToPay');
 
 INSERT INTO product_ordereds (cart_id, stock_id, quantity) VALUES (1, 1, 12);

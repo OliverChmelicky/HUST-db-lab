@@ -91,11 +91,11 @@ CREATE TABLE orders (
 
 CREATE TABLE product_ordereds (
     id bigserial PRIMARY KEY,
-    cart_id bigint NOT NULL REFERENCES orders (id) ON DELETE CASCADE,					--
+    order_id bigint NOT NULL REFERENCES orders (id) ON DELETE CASCADE,					--
     stock_id bigint NOT NULL REFERENCES product_stocks (id)  ON DELETE CASCADE,			--
     purchase_price int,
-    quantity integer NOT NULL,
-    total_price bigint
+    quantity integer NOT NULL
+--     total_price biginta
 );
 
 CREATE INDEX ON users (name);
@@ -105,4 +105,4 @@ CREATE INDEX ON vouchers (title);
 CREATE INDEX ON products (name);
 CREATE INDEX ON categories (title);
 CREATE INDEX ON product_stocks (product_id);
-CREATE INDEX ON product_ordereds (cart_id);
+CREATE INDEX ON product_ordereds (order_id);

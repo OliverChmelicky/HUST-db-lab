@@ -78,11 +78,11 @@ CREATE TABLE product_stocks (
 
 CREATE TABLE orders (
     id bigserial PRIMARY KEY,
-    user_id bigint NOT NULL REFERENCES users (id) ON DELETE SET NULL ,			--
+    user_id bigint NOT NULL REFERENCES users (id) ON DELETE CASCADE ,			--
     created_at timestamptz NOT NULL DEFAULT 'now()',
     status cart_status NOT NULL DEFAULT 'ToPay',
     shipping_address varchar,
-    voucher_id bigint REFERENCES vouchers (id) ON DELETE CASCADE,	--
+    voucher_id bigint REFERENCES vouchers (id) ON DELETE SET NULL ,	--
     total_price integer DEFAULT 0 NOT NULL,
     payment_method varchar DEFAULT 'COD' NOT NULL,
     UNIQUE (user_id, voucher_id)

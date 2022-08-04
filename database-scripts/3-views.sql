@@ -36,3 +36,14 @@ AS
             JOIN categories c ON (p.category_id = c.id)
         order by created_at;
 
+
+DROP FUNCTION IF EXISTS user_vouchers_list(bigint);
+CREATE OR REPLACE FUNCTION user_vouchers_list(a bigint)
+RETURNS SETOF vouchers
+AS $function$
+BEGIN
+RETURN Query SELECT * FROM vouchers v
+    where id NOT IN (SELECT v.id FROM vouchers v JOIN orders o ON v.id = o.voucher_id WHERE o.user_id = a);
+END;
+$function$
+LANGUAGE plpgsql;

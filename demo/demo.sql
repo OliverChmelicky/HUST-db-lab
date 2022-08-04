@@ -28,8 +28,16 @@ UPDATE orders SET voucher_id = 1 WHERE id = 2;
 UPDATE vouchers SET condition = 999999999 WHERE id = 2;
 UPDATE orders SET voucher_id = 2 WHERE id = 2;
 
---c
+-- 5
+-- Calculation of discount - firstly does not show
 UPDATE vouchers SET condition = 20 WHERE id = 2;
 UPDATE orders SET voucher_id = 2 WHERE id = 2;
---d
+--show it finally calculates the price
 UPDATE orders SET voucher_id = 3 WHERE id = 2;
+
+
+SELECT * FROM user_vouchers_list(1);
+SELECT * FROM order_products WHERE user_id = 1;
+SELECT * FROM product_detail where id = 1;
+
+DELETE FROM users WHERE id=1;
